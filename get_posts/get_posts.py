@@ -1,4 +1,6 @@
-import os, re, sys
+import os
+import re
+import sys
 import codecs
 import HTMLParser
 import urllib2
@@ -61,6 +63,8 @@ def main():
         exit(-1)
 
     fout = os.path.join('posts_raw', site, '%s.txt' % (username))
+    if not os.path.isdir(os.path.join('posts_raw', site)):
+        os.makedirs(os.path.join('posts_raw', site))
     writer = codecs.open(fout, 'wb', 'utf-8')
     page = 0
 
