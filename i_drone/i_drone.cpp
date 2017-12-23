@@ -40,7 +40,7 @@ int main() {
     total += fct_4[i];
 
   FILE* outFile;
-  outFile = fopen("i_drone.txt", "w");
+  outFile = fopen("output.txt", "w");
   fprintf(outFile, "  %6s  %7s  %17s  %21s  %21s  %21s  %17s  %22s\n", "Frames", "Seconds", "Occurrences", "PDF", "CDF", "1-CDF", "1/CDF", "1/(1-CDF)");
   unsigned __int128 cval = 0;
   for (int i = 0; i < fct_4.size(); i++) {

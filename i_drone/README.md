@@ -34,4 +34,4 @@ For example, Jack had an I-Drone fight that was timed to have taken 85.933 secon
 How to use the code
 -------------------
 
-A C++ compiler is required. To build, simply type ``make``. To run, simply type ``./i_drone``. The output will be a text file called ``i_drone.txt`` which contains the PDF and CDF as well as some other useful values for each possible frame count.
+A C++ compiler is required. To build, simply type ``make``. To run, simply type ``./i_drone``. The output will be a text file called ``output.txt`` which contains the PDF and CDF as well as some other useful values for each possible frame count.

@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -O2
+CXXFLAGS = -O3
 
 build: clean
 	$(CXX) i_drone.cpp -o i_drone
