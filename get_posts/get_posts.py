@@ -108,7 +108,7 @@ def process_page(site, username, page, writer):
 
     # Write paragraphs to file
     for i, paragraph in enumerate(paragraphs):
-        writer.write('%s: %s\n' % (date = dates[i], paragraph))
+        writer.write('%s: %s\n' % (dates[i], paragraph))
     print('Read page %3u: %3u paragraphs found' % (page, num_paragraphs))
 
 def main():
