@@ -1,25 +1,24 @@
+#!/usr/bin/python3
+
 import os
 import re
 import sys
 import codecs
-import HTMLParser
-import urllib2
+from html import unescape
+import urllib.request
 
-m2k2_base = 'https://m2k2.taigaforum.com/allposts/'
-sda_base = 'https://forum.speeddemosarchive.com/allposts/'
-
-h = HTMLParser.HTMLParser()
+url_bases = {'m2k2': 'https://m2k2.taigaforum.com/allposts/',
+             'sda' : 'https://forum.speeddemosarchive.com/allposts/'}
 post_line_begin = '<div class="highlight"><span class="highlightlabel">' + \
                   'Post preview:</span><span class="highlighttext">'
 quote_tags = ['<div class="quotearea"><div class="quotelabel">', '</div></div>']
 date_tag = '<div class="relevantpostdate"><a class="relevantpostdatelink" href='
 
 def download_html(site, username, page):
-    if   site == 'm2k2': url_base = m2k2_base
-    elif site == 'sda':  url_base = sda_base
+    url_base = url_bases[site]
     url = '%s%s-%u.html' % (url_base, username, page)
-    html = urllib2.urlopen(url).read()
-    html = unicode(html, 'utf-8')
+    html = urllib.request.urlopen(url).read()
+    html = str(html, 'utf-8')
     html = html.split('\n')
     return html
 
@@ -47,15 +46,14 @@ def parse_html(html):
             depth = 0
             tag_start_ind = tag_start_inds[0]
             for ind in inds:
-                if ind in tag_start_inds: depth += 1
-                elif ind in tag_end_inds: depth -= 1
-                if depth == 0:
-                    break
+                if   ind in tag_start_inds: depth += 1
+                elif ind in tag_end_inds:   depth -= 1
+                if depth == 0: break
             tag_end_ind = ind
             line = line[:tag_start_ind] + line[tag_end_ind:]
 
         # Convert HTML entities to ASCII (i.e. "&amp;" --> "&")
-        line = h.unescape(line)
+        line = unescape(line)
 
         # Split line into paragraphs
         for paragraph in reversed(line.split('<br /><br />')):
@@ -110,34 +108,30 @@ def process_page(site, username, page, writer):
 
     # Write paragraphs to file
     for i, paragraph in enumerate(paragraphs):
-        date = dates[i]
-        writer.write('%s: %s\n' % (date, paragraph))
-    print 'Read page %3u: %3u paragraphs found' % (page, num_paragraphs)
+        writer.write('%s: %s\n' % (date = dates[i], paragraph))
+    print('Read page %3u: %3u paragraphs found' % (page, num_paragraphs))
 
 def main():
     if len(sys.argv) != 3:
-        print "Usage: python get_posts.py <site> <username>"
-        exit(-1)
-    site = sys.argv[1].lower()
+        raise Exception('Usage: python get_posts.py <site> <username>')
+    site     = sys.argv[1].lower()
     username = sys.argv[2].lower()
-    if site not in ['m2k2', 'sda']:
-        print 'Invalid site chosen. Valid options are "m2k2" and "sda".'
-        exit(-1)
+    if site not in url_bases.keys(): raise Exception('Invalid site chosen')
+
+    # Get number of pages in user's post history
+    num_pages = get_num_pages(site, username)
 
     # Open output file
     fout = os.path.join('posts_raw', site, '%s.txt' % (username))
     if not os.path.isdir(os.path.join('posts_raw', site)):
         os.makedirs(os.path.join('posts_raw', site))
-    writer = codecs.open(fout, 'wb', 'utf-8')
-
-    # Get number of pages in user's post history
-    num_pages = get_num_pages(site, username)
+    w = codecs.open(fout, 'w', 'utf-8')
 
     # Loop over all pages in user's post history
     for page in range(num_pages, 0, -1):
-        process_page(site, username, page, writer)
+        process_page(site, username, page, w)
 
-    writer.close()
+    # Close output file
+    w.close()
 
-if __name__ == '__main__':
-    main()
+if __name__ == '__main__': main()
