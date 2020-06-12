@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import math
 from datetime import datetime
 from datetime import timedelta
@@ -103,6 +105,7 @@ def main():
         ax.legend(['Done', 'Hard', 'SS', 'Hard SS'], loc=2)
         ax.set_xlim([xmin, xmax])
         ax.xaxis.set_ticks([import_date('%u-01-01' % (year)) for year in range(xmin_year, current_year + 2)])
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
         ax.set_ylim([0, ymax])
         ax.set_yticks(range(0, ymax + spacing, spacing))
         ax.set_xlabel('Date of first completion')
@@ -110,7 +113,7 @@ def main():
         ax.set_title(plot_titles[game])
         ax.grid()
         fname = 'prime%u.png' % (game + 1)
-        print fname
+        print(fname)
         plt.savefig(fname)
         plt.close()
 
@@ -158,6 +161,7 @@ def main():
         ax.legend(['Prime', 'Echoes', 'Corruption'], loc=2)
         ax.set_xlim([xmin, xmax])
         ax.xaxis.set_ticks([import_date('%u-01-01' % (year)) for year in range(xmin_year, current_year + 2)])
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
         ax.set_ylim([0, ymax])
         ax.yaxis.set_ticks(range(0, ymax + spacing, spacing))
         ax.set_xlabel('Date of first completion')
@@ -165,7 +169,7 @@ def main():
         ax.set_title(plot_titles[cat])
         ax.grid()
         fname = 'cat%u.png' % (cat + 1)
-        print fname
+        print(fname)
         plt.savefig(fname)
         plt.close()
 
