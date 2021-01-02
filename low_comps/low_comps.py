@@ -1,13 +1,12 @@
 #!/usr/bin/python3
 
-import math
-from datetime import datetime
-from datetime import timedelta
-import matplotlib.dates as mdates
+import numpy as np
+from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
-def import_date(date):
-    return datetime.strptime(date, '%Y-%m-%d')
+plt.rcParams['font.family'     ] = 'serif'
+plt.rcParams['mathtext.default'] = 'regular'
 
 class Run():
     def __init__(self, game, cat, name, date, l1, l2):
@@ -17,6 +16,13 @@ class Run():
         self.date = import_date(date)
         self.l1   = l1
         self.l2   = l2
+
+def import_date(date): return datetime.strptime(date, '%Y-%m-%d')
+
+def main():
+    runs = get_runs()
+    for game in [1, 2, 3   ]: plot_runs_by_game(runs, game)
+    for cat  in [1, 2, 3, 4]: plot_runs_by_cat (runs, cat )
 
 def get_runs():
     runs = []
@@ -32,146 +38,133 @@ def get_runs():
         runs.append(Run(game, cat, name, date, l1, l2))
     return runs
 
-def main():
-    runs = get_runs()
+def plot_runs_by_game(runs_all, game):
+    game_names = ['Metroid Prime', 'Metroid Prime 2: Echoes',
+                  'Metroid Prime 3: Corruption']
+    cat_names = ['Done', 'Hard', 'SS', 'Hard SS']
 
-    plot_data = [ [ [ [], [] ], [ [], [] ], [ [], [] ], [ [], [] ] ],
-                  [ [ [], [] ], [ [], [] ], [ [], [] ], [ [], [] ] ],
-                  [ [ [], [] ], [ [], [] ], [ [], [] ], [ [], [] ] ] ]
+    xmin_list = [2010, 2012, 2015]
+    yspace_list = [2, 2, 1]
 
-    for game in range(3):
-        for cat in range(4):
-            plot_data[game][cat][0].append(Run(0, 0, '', '2010-01-01', 1, 1))
-            plot_data[game][cat][1].append(0)
-            plot_data[game][cat][1].append(0)
-
-    for run in runs:
-        if plot_data[run.game-1][run.cat-1][1] == []: i = 0
-        else: i = plot_data[run.game-1][run.cat-1][1][-1] + 1
-        plot_data[run.game-1][run.cat-1][0].append(run)
-        plot_data[run.game-1][run.cat-1][0].append(run)
-        plot_data[run.game-1][run.cat-1][1].append(i)
-        plot_data[run.game-1][run.cat-1][1].append(i)
-
-    for game in range(3):
-        for cat in range(4):
-            plot_data[game][cat][0].append(Run(0, 0, '', datetime.today().strftime('%Y-%m-%d'), 1, 1))
-
-    current_year = datetime.now().year
-    xmax = import_date('%u-01-01' % (current_year + 1))
+    # X-axis stuff
+    xmin_year = xmin_list[game - 1]
+    xmax_year = datetime.now().year + 1
+    xmin = import_date('%u-01-01' % (xmin_year))
+    xmax = import_date('%u-01-01' % (xmax_year))
     xto_const = 0.008
+    xtextoff = timedelta(seconds=xto_const * (xmax - xmin).total_seconds())
+    xlabels = [import_date('%u-01-01' % (x)) for x in
+               range(xmin_year, xmax_year + 1)]
+
+    # Y-axis stuff
+    yspace = yspace_list[game - 1]
+    ymax = 0
+    for cat in [1, 2, 3, 4]:
+        runs = [x for x in runs_all if x.game == game and x.cat == cat]
+        ymax = max(ymax, len(runs))
+    ymax = int((np.ceil(ymax / yspace)) * yspace)
+    yticks = list(range(0, ymax + 2 * yspace, yspace))
     yto_const = 0.02
+    ytextoff = yto_const * ymax
 
-    plot_titles = ['Metroid Prime Low% Completions',
-                   'Metroid Prime 2: Echoes Low% Completions',
-                   'Metroid Prime 3: Corruption Low% Completions']
-    xmins = [2010, 2012, 2015]
-    spacings = [2, 2, 1]
-    for game in range(3):
-        fig = plt.figure(figsize=(12, 9))
-        ax = fig.add_subplot(111)
+    # Make plot
+    fig, ax = plt.subplots(1, 1)
+    fig.set_size_inches(12.0, 9.0)
+    for cat in [1, 2, 3, 4]:
+        runs = [x for x in runs_all if x.game == game and x.cat == cat]
+        dates = [xmin] + [x.date for x in runs] + [datetime.today()]
+        yvals = list(range(len(runs) + 1)) + [len(runs)]
+        ax.step(dates, yvals, 'o-', where='post', markersize=4,
+                markevery=range(len(runs) + 1), label=cat_names[cat - 1])
+        for i, run in enumerate(runs):
+            xy = (run.date, i + 1)
+            if run.l1 == 0:
+                ha = 'right'
+                xytext=(xy[0] - xtextoff, xy[1] + ytextoff)
+            elif run.l1 == 1:
+                ha = 'center'
+                xytext=(xy[0], xy[1] + ytextoff)
+            elif run.l1 == 2:
+                ha = 'left'
+                xytext=(xy[0] + xtextoff, xy[1] + ytextoff)
+            ax.annotate(run.name, xy=xy, ha=ha, va='center', xytext=xytext)
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(0, ymax + yspace)
+    ax.set_yticks(yticks)
+    ax.xaxis.set_ticks(xlabels)
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+    ax.set_xlabel('Date of first completion')
+    ax.set_ylabel('Completion index')
+    ax.set_title('%s Low%% Completions' % (game_names[game - 1]))
+    ax.grid()
+    ax.legend(loc='upper left')
+    fname = 'prime%u.png' % (game)
+    print(fname)
+    plt.savefig(fname)
+    plt.close()
 
-        # X-axis stuff
-        xmin_year = xmins[game]
-        xmin = import_date('%u-01-01' % xmin_year)
-        xtextoff = timedelta(seconds=xto_const * (xmax - xmin).total_seconds())
+def plot_runs_by_cat(runs_all, cat):
+    game_names = ['Prime', 'Echoes', 'Corruption']
+    cat_names = ['Low%', 'Hard Low%', 'Low% SS', 'Hard Low% SS']
 
-        # Y-axis stuff
-        spacing = spacings[game]
-        ymax = 1
-        for cat in range(4): ymax = max(max(plot_data[game][cat][1]), ymax)
-        ymax = int((math.ceil(ymax / spacing) + 1) * spacing)
-        ytextoff = yto_const * ymax
+    xmin_list = [2010, 2010, 2014, 2015]
+    yspace_list = [2, 2, 1, 1]
 
-        # Plot the points
-        for cat in range(4):
-            dates = [run.date for run in plot_data[game][cat][0]]
-            ax.plot(dates, plot_data[game][cat][1],
-                     'o-', markersize=4, markevery=2)
-            for i, run in enumerate(plot_data[game][cat][0]):
-                if i%2 == 1: continue
-                xy = (run.date, i/2)
-                if run.l1 == 0:
-                    ha = 'right'
-                    xytext=(xy[0] - xtextoff, xy[1] + ytextoff)
-                elif run.l1 == 1:
-                    ha = 'center'
-                    xytext=(xy[0], xy[1] + ytextoff)
-                elif run.l1 == 2:
-                    ha = 'left'
-                    xytext=(xy[0] + xtextoff, xy[1] + ytextoff)
-                ax.annotate(run.name, xy=xy, ha=ha, va='center', xytext=xytext)
+    # X-axis stuff
+    xmin_year = xmin_list[cat - 1]
+    xmax_year = datetime.now().year + 1
+    xmin = import_date('%u-01-01' % (xmin_year))
+    xmax = import_date('%u-01-01' % (xmax_year))
+    xto_const = 0.008
+    xtextoff = timedelta(seconds=xto_const * (xmax - xmin).total_seconds())
+    xlabels = [import_date('%u-01-01' % (x)) for x in
+               range(xmin_year, xmax_year + 1)]
 
-        ax.legend(['Done', 'Hard', 'SS', 'Hard SS'], loc=2)
-        ax.set_xlim([xmin, xmax])
-        ax.xaxis.set_ticks([import_date('%u-01-01' % (year)) for year in range(xmin_year, current_year + 2)])
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
-        ax.set_ylim([0, ymax])
-        ax.set_yticks(range(0, ymax + spacing, spacing))
-        ax.set_xlabel('Date of first completion')
-        ax.set_ylabel('Completion index')
-        ax.set_title(plot_titles[game])
-        ax.grid()
-        fname = 'prime%u.png' % (game + 1)
-        print(fname)
-        plt.savefig(fname)
-        plt.close()
+    # Y-axis stuff
+    yspace = yspace_list[cat - 1]
+    ymax = 0
+    for game in [1, 2, 3]:
+        runs = [x for x in runs_all if x.game == game and x.cat == cat]
+        ymax = max(ymax, len(runs))
+    ymax = int((np.ceil(ymax / yspace)) * yspace)
+    yticks = list(range(0, ymax + 2 * yspace, yspace))
+    yto_const = 0.02
+    ytextoff = yto_const * ymax
 
-    plot_titles = ['Metroid Prime Series Low% Completions',
-                   'Metroid Prime Series Hard Low% Completions',
-                   'Metroid Prime Series Low% SS Completions',
-                   'Metroid Prime Series Hard Low% SS Completions']
-    xmins = [2010, 2010, 2014, 2015]
-    spacings = [2, 2, 1, 1]
-    for cat in range(4):
-        fig = plt.figure(figsize=(12, 9))
-        ax = fig.add_subplot(111)
+    # Make plot
+    fig, ax = plt.subplots(1, 1)
+    fig.set_size_inches(12.0, 9.0)
+    for game in [1, 2, 3]:
+        runs = [x for x in runs_all if x.game == game and x.cat == cat]
+        dates = [xmin] + [x.date for x in runs] + [datetime.today()]
+        yvals = list(range(len(runs) + 1)) + [len(runs)]
+        ax.step(dates, yvals, 'o-', where='post', markersize=4,
+                markevery=range(len(runs) + 1), label=game_names[game - 1])
+        for i, run in enumerate(runs):
+            xy = (run.date, i + 1)
+            if run.l2 == 0:
+                ha = 'right'
+                xytext=(xy[0] - xtextoff, xy[1] + ytextoff)
+            elif run.l2 == 1:
+                ha = 'center'
+                xytext=(xy[0], xy[1] + ytextoff)
+            elif run.l2 == 2:
+                ha = 'left'
+                xytext=(xy[0] + xtextoff, xy[1] + ytextoff)
+            ax.annotate(run.name, xy=xy, ha=ha, va='center', xytext=xytext)
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(0, ymax + yspace)
+    ax.set_yticks(yticks)
+    ax.xaxis.set_ticks(xlabels)
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+    ax.set_xlabel('Date of first completion')
+    ax.set_ylabel('Completion index')
+    ax.set_title('Metroid Prime Series %s Completions' % (cat_names[cat - 1]))
+    ax.grid()
+    ax.legend(loc='upper left')
+    fname = 'cat%u.png' % (cat)
+    print(fname)
+    plt.savefig(fname)
+    plt.close()
 
-        # X-axis stuff
-        xmin_year = xmins[cat]
-        xmin = import_date('%u-01-01' % xmin_year)
-        xtextoff = timedelta(seconds=xto_const * (xmax - xmin).total_seconds())
-
-        # Y-axis stuff
-        spacing = spacings[cat]
-        ymax = 1
-        for game in range(3): ymax = max(max(plot_data[game][cat][1]), ymax)
-        ymax = int((math.ceil(ymax / spacing) + 1) * spacing)
-        ytextoff = yto_const * ymax
-
-        # Plot the points
-        for game in range(3):
-            dates = [run.date for run in plot_data[game][cat][0]]
-            ax.plot(dates, plot_data[game][cat][1],
-                     'o-', markersize=4, markevery=2)
-            for i, run in enumerate(plot_data[game][cat][0]):
-                if i%2 == 1: continue
-                xy = (run.date, i/2)
-                if run.l2 == 0:
-                    ha = 'right'
-                    xytext=(xy[0] - xtextoff, xy[1] + ytextoff)
-                elif run.l2 == 1:
-                    ha = 'center'
-                    xytext=(xy[0], xy[1] + ytextoff)
-                elif run.l2 == 2:
-                    ha = 'left'
-                    xytext=(xy[0] + xtextoff, xy[1] + ytextoff)
-                ax.annotate(run.name, xy=xy, ha=ha, va='center', xytext=xytext)
-
-        ax.legend(['Prime', 'Echoes', 'Corruption'], loc=2)
-        ax.set_xlim([xmin, xmax])
-        ax.xaxis.set_ticks([import_date('%u-01-01' % (year)) for year in range(xmin_year, current_year + 2)])
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
-        ax.set_ylim([0, ymax])
-        ax.yaxis.set_ticks(range(0, ymax + spacing, spacing))
-        ax.set_xlabel('Date of first completion')
-        ax.set_ylabel('Completion index')
-        ax.set_title(plot_titles[cat])
-        ax.grid()
-        fname = 'cat%u.png' % (cat + 1)
-        print(fname)
-        plt.savefig(fname)
-        plt.close()
-
-if __name__ == '__main__':
-    main()
+if __name__ == '__main__': main()
